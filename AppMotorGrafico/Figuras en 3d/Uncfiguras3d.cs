@@ -5,11 +5,9 @@
         void Trasladar(double tx, double ty, double tz);
         void Escalar(double factor);
         void Escalar(double factor, UncPunto centro);
-        //void Rotar(double anguloX, double anguloY, double anguloZ);
-        //   void Escalar(double factor, UncPunto direccion); // Añadido
-       
+        
         void Rotar(double anguloX, double anguloY, double anguloZ, UncPunto centro);
-        // Otros métodos...
+       
         bool IsSelected { get; set; }
         UncPunto CalcularCentroDeMasa();
         Figura3D ObtenerElemento(string id);

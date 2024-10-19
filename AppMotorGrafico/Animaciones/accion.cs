@@ -1,34 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AppMotorGrafico.Animaciones
 {
     public class Accion
     {
-       
-        public Dictionary<string, Transformacion> Transformaciones { get; private set; }
+        public List<Transformacion> Transformaciones { get; private set; }
+        public double TiempoInicio { get; private set; }  
+        public double Duracion { get; private set; }      
 
-        public Accion()
+        public Accion(double tiempoInicio, double duracion)
         {
-            Transformaciones = new Dictionary<string, Transformacion>();
+            Transformaciones = new List<Transformacion>();
+            this.TiempoInicio = tiempoInicio;
+            this.Duracion = duracion;
         }
 
-      
-        public void AgregarTransformacion(string nombre, Transformacion transformacion)
+        public void AgregarTransformacion(Transformacion transformacion)
         {
-            Transformaciones[nombre] = transformacion;
+            Transformaciones.Add(transformacion);
+            transformacion.TiempoInicio = TiempoInicio;
+            transformacion.Duracion = Duracion;
         }
 
-       
-        public void Ejecutar()
+        public void Ejecutar(double tiempoActual)
         {
-            foreach (var transformacion in Transformaciones.Values)
+            foreach (var transformacion in Transformaciones)
             {
-                transformacion.Ejecutar();
+                transformacion.EjecutarInterpolado(tiempoActual);
             }
+        }
+
+        public bool EstaCompletada(double tiempoActual)
+        {
+            return tiempoActual >= TiempoInicio + Duracion;
         }
     }
 

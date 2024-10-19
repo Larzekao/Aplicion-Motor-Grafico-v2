@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AppMotorGrafico.Animaciones
 {
     public class Libreto
     {
-      
         public Dictionary<string, Escena> Escenas { get; private set; }
 
         public Libreto()
@@ -21,13 +17,24 @@ namespace AppMotorGrafico.Animaciones
             Escenas[nombre] = escena;
         }
 
-        public void EjecutarEscena(string nombre)
+        public void Ejecutar(double tiempoActual)
         {
-            if (Escenas.TryGetValue(nombre, out Escena escena))
+            foreach (var escena in Escenas.Values)
             {
-                escena.Ejecutar();
+                escena.Ejecutar(tiempoActual);
             }
-          
+        }
+
+        public bool EstaCompletado(double tiempoActual)
+        {
+            foreach (var escena in Escenas.Values)
+            {
+                if (!escena.EstaCompletada(tiempoActual))
+                {
+                    return false; 
+                }
+            }
+            return true;  
         }
     }
 

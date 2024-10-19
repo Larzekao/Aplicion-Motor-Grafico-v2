@@ -41,6 +41,10 @@ namespace AppMotorGrafico
         private Rectangle selectionRectangle;
 
 
+        private Libreto libreto;
+        private DateTime tiempoInicioAnimacion;
+
+
         public Form1()
         {
             InitializeComponent();
@@ -56,7 +60,7 @@ namespace AppMotorGrafico
             camara = new Camara3D();
 
             timer = new System.Windows.Forms.Timer();
-            timer.Interval = 16; // Aproximadamente 60 FPS
+            timer.Interval = 16; //|
             timer.Tick += Timer_Tick;
             timer.Start();
 
@@ -72,6 +76,18 @@ namespace AppMotorGrafico
             buttonAnimar.Location = new Point(10, 30); // Posición visible por debajo del menú
             buttonAnimar.Click += BtnAnimar_Click;
             this.Controls.Add(buttonAnimar);
+        }
+     
+
+        // Función auxiliar para crear un polígono (una cara del cubo)
+        private UncPoligono CrearPoligono(UncPunto[] vertices, Color4 color)
+        {
+            UncPoligono poligono = new UncPoligono(color);
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                poligono.AñadirVertice("v" + i, vertices[i]);
+            }
+            return poligono;
         }
 
         private void InicializarMenuStrip()
@@ -135,6 +151,80 @@ namespace AppMotorGrafico
             camara.IniciarMatrices(glControl1.Width, glControl1.Height);
             InicializarEscena();
         }
+        private async void BtnAnimar_Click(object sender, EventArgs e)
+        {
+            Figura3D objeto1 = escenario.ObtenerFigura("objetoT1");
+          
+            libreto = new Libreto();
+            Escena escena1 = new Escena();
+
+            double duracionTotal = 10.0;
+            double duracionPorLado = duracionTotal / 4.0;
+
+            UncObjeto objetoCompleto = objeto1 as UncObjeto;
+
+            UncParte parteHori = objetoCompleto.ObtenerParte("rectanguloHorizontal");
+            
+            // Lado 1: 
+            Accion moverDerecha = new Accion(0.0, duracionPorLado);
+            moverDerecha.AgregarTransformacion(new Traslacion(objeto1, 10.0, 0.0, 0.0, duracionPorLado));
+            moverDerecha.AgregarTransformacion(new Rotacion(parteHori, 0.0, 10080.0, 0.0, () => parteHori.CalcularCentroDeMasa(), duracionPorLado));
+
+            // Lado 2: 
+            Accion moverAdelante = new Accion(duracionPorLado, duracionPorLado);
+            moverAdelante.AgregarTransformacion(new Traslacion(objeto1, 0.0, 0.0, 5.0, duracionPorLado));
+            moverAdelante.AgregarTransformacion(new Rotacion(parteHori, 0.0, 720.0, 0.0, () => parteHori.CalcularCentroDeMasa(), duracionPorLado));
+
+            // Lado 3: 
+            Accion moverIzquierda = new Accion(duracionPorLado * 2.0, duracionPorLado);
+            moverIzquierda.AgregarTransformacion(new Traslacion(objeto1, -10.0, 0.0, 0.0, duracionPorLado));
+            moverIzquierda.AgregarTransformacion(new Rotacion(parteHori, 0.0, 720.0, 0.0, () => parteHori.CalcularCentroDeMasa(), duracionPorLado));
+
+            // Lado 4: 
+            Accion moverAtras = new Accion(duracionPorLado * 3.0, duracionPorLado);
+            moverAtras.AgregarTransformacion(new Traslacion(objeto1, 0.0, 0.0, -5.0, duracionPorLado));
+            moverAtras.AgregarTransformacion(new Rotacion(parteHori, 0.0, 720.0, 0.0, () => parteHori.CalcularCentroDeMasa(), duracionPorLado));
+
+           
+            escena1.AgregarAccion("MoverDerecha", moverDerecha);
+            escena1.AgregarAccion("MoverAdelante", moverAdelante);
+            escena1.AgregarAccion("MoverIzquierda", moverIzquierda);
+            escena1.AgregarAccion("MoverAtras", moverAtras);
+
+           
+            libreto.AgregarEscena("AnimacionCancha", escena1);
+
+           
+            await EjecutarEscenaAsincrona(libreto, "AnimacionCancha");
+        }
+
+
+
+
+
+
+        private async Task EjecutarEscenaAsincrona(Libreto libreto, string nombreEscena)
+           {
+    tiempoInicioAnimacion = DateTime.Now;
+
+    while (!libreto.EstaCompletado(GetTiempoActual()))
+    {
+        double tiempoActual = GetTiempoActual();
+        libreto.Ejecutar(tiempoActual); 
+        glControl1.Invalidate();  
+        await Task.Delay(16);  
+    }
+              }
+
+               private double GetTiempoActual()
+           {
+    return (DateTime.Now - tiempoInicioAnimacion).TotalSeconds;
+                  }
+
+
+
+
+
 
         private void glControl1_Paint(object sender, PaintEventArgs e)
         {
@@ -142,7 +232,7 @@ namespace AppMotorGrafico
             camara.ConfigurarMatrices();
             escenario.Dibujar();
 
-            // Dibujar el rectángulo de selección si está en modo selección
+            //  rectángulo de selección si est selección
             if (isSelecting)
             {
                 DrawSelectionRectangle();
@@ -178,21 +268,20 @@ namespace AppMotorGrafico
             Figura3D objetoT1 = ser.Deserializar("ObjetoT");
             Figura3D objetoT2 = ser.Deserializar("ObjetoT");
 
-          
-              
-                objetoT1.Trasladar(3, 1, 0); // Trasladar a la posición deseada
-               
 
-                objetoT2.Trasladar(-2, 0, 0); // Trasladar a la posición deseada
-              
 
-                objetoT1.Escalar(1.5, objetoT1.CalcularCentroDeMasa());
+            objetoT1.Trasladar(3, 1, 0); 
 
-                escenario.AgregarFigura("objetoT1", objetoT1);
-                escenario.AgregarFigura("objetoT2", objetoT2);
-            
-            
 
+            objetoT2.Trasladar(-2, 0, 0);
+
+
+            objetoT1.Escalar(1.5, objetoT1.CalcularCentroDeMasa());
+
+            escenario.AgregarFigura("objetoT1", objetoT1);
+            escenario.AgregarFigura("objetoT2", objetoT2);
+
+         
             ActualizarTreeView();
         }
 
@@ -254,19 +343,19 @@ namespace AppMotorGrafico
             {
                 figura.IsSelected = true;
                 objetosSeleccionados.Add(figura);
-                Console.WriteLine($"Objeto seleccionado: {e.Node.Text}");
+               
             }
             else if (seleccionado is UncParte parte)
             {
                 parte.IsSelected = true;
                 objetosSeleccionados.Add(parte);
-                Console.WriteLine($"Parte seleccionada: {e.Node.Text}");
+              
             }
             else if (seleccionado is UncPoligono poligono)
             {
                 poligono.IsSelected = true;
                 objetosSeleccionados.Add(poligono);
-                Console.WriteLine($"Polígono seleccionado: {e.Node.Text}");
+                
             }
             else if (seleccionado is UncPunto punto)
             {
@@ -297,77 +386,9 @@ namespace AppMotorGrafico
                 }
             }
         }
-        private async void BtnAnimar_Click(object sender, EventArgs e)
-        {
-          
-            Figura3D objeto1 = escenario.ObtenerFigura("objetoT1");
 
-          
+      
 
-           
-            UncParte parteHorizontal = (UncParte)objeto1.ObtenerElemento("rectanguloHorizontal");
-
-
-            // *** ANIMACIÓN DE MOVIMIENTO ***
-       
-            double distanciaDerecha = 5.0; 
-            double distanciaArriba = 5.0;
-            double distanciaAbajo = 5.0;
-            int pasosMovimiento = 50; 
-            int delayMovimiento = 10; 
-
-            // 1. Mover a la derecha
-        
-            for (int i = 0; i < pasosMovimiento; i++)
-            {
-                objeto1.Trasladar(distanciaDerecha / pasosMovimiento, 0, 0); 
-                glControl1.Invalidate(); // Redibujar la escena
-                await Task.Delay(delayMovimiento); // Pausa entre cada paso
-            }
-
-            // 2. Mover hacia arriba
-           
-            for (int i = 0; i < pasosMovimiento; i++)
-            {
-                objeto1.Trasladar(0, distanciaArriba / pasosMovimiento, 0); 
-                glControl1.Invalidate();
-                await Task.Delay(delayMovimiento);
-            }
-
-            // 3. Mover hacia abajo (regresar al nivel original)
-           
-            for (int i = 0; i < pasosMovimiento; i++)
-            {
-                objeto1.Trasladar(0, -distanciaAbajo / pasosMovimiento, 0); 
-                glControl1.Invalidate();
-                await Task.Delay(delayMovimiento);
-            }
-
-            // 4. Mover hacia la izquierda (regresar a la posición original en X)
-          
-            for (int i = 0; i < pasosMovimiento; i++)
-            {
-                objeto1.Trasladar(-distanciaDerecha / pasosMovimiento, 0, 0); 
-                glControl1.Invalidate();
-                await Task.Delay(delayMovimiento);
-            }
-
-            // *** ROTACIÓN DE LA PARTE HORIZONTAL COMO HÉLICE ***
-          
-            UncPunto centroRotacion = parteHorizontal.CalcularCentroDeMasa();
-
-        
-            // Aplicar rotaciones directamente
-            for (int i = 0; i < 36; i++) 
-            {
-                parteHorizontal.Rotar(0.0, 10.0, 0.0, centroRotacion); // Rotar en el eje Y
-                Console.WriteLine($"Rotación paso {i + 1}: 10 grados.");
-                glControl1.Invalidate(); // Redibujar la escena
-                await Task.Delay(50); 
-            }
-
-         
-        }
 
 
         private void BtnTrasladar_Click(object sender, EventArgs e)
@@ -691,6 +712,8 @@ namespace AppMotorGrafico
 
             return new UncPunto(xProm, yProm, zProm);
         }
+        
+
 
         private void AplicarEscalado(int deltaX, int deltaY)
         {

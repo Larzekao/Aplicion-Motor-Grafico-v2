@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AppMotorGrafico.Animaciones
 {
     public class Escena
     {
-      
         public Dictionary<string, Accion> Acciones { get; private set; }
 
         public Escena()
@@ -16,19 +12,33 @@ namespace AppMotorGrafico.Animaciones
             Acciones = new Dictionary<string, Accion>();
         }
 
-        
         public void AgregarAccion(string nombre, Accion accion)
         {
             Acciones[nombre] = accion;
         }
 
-        
-        public void Ejecutar()
+        public void Ejecutar(double tiempoActual)
         {
             foreach (var accion in Acciones.Values)
             {
-                accion.Ejecutar();
+           
+                if (tiempoActual >= accion.TiempoInicio && !accion.EstaCompletada(tiempoActual))
+                {
+                    accion.Ejecutar(tiempoActual);
+                }
             }
+        }
+
+        public bool EstaCompletada(double tiempoActual)
+        {
+            foreach (var accion in Acciones.Values)
+            {
+                if (!accion.EstaCompletada(tiempoActual))
+                {
+                    return false;  
+                }
+            }
+            return true;  
         }
     }
 

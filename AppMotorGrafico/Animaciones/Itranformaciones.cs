@@ -1,77 +1,154 @@
 ﻿using AppMotorGrafico.figuras3d;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AppMotorGrafico.Animaciones
 {
     public abstract class Transformacion
     {
-        public abstract void Ejecutar();
+        public double Duracion { get; set; }
+        public double TiempoInicio { get; set; }
+
+        public abstract void EjecutarInterpolado(double tiempoActual);
+    }
+        public class Traslacion : Transformacion
+        {
+            private Figura3D objeto;
+            private double deltaX, deltaY, deltaZ;
+            private double posXInicial, posYInicial, posZInicial;
+            private double posXAnterior, posYAnterior, posZAnterior; // Posición en la última actualización
+
+            public Traslacion(Figura3D objeto, double deltaX, double deltaY, double deltaZ, double duracion)
+            {
+                this.objeto = objeto;
+                this.deltaX = deltaX;
+                this.deltaY = deltaY;
+                this.deltaZ = deltaZ;
+                this.Duracion = duracion;
+                CalcularPosicionInicial();
+                posXAnterior = posXInicial;
+                posYAnterior = posYInicial;
+                posZAnterior = posZInicial;
+            }
+
+            private void CalcularPosicionInicial()
+            {
+                var centro = objeto.CalcularCentroDeMasa();
+                this.posXInicial = centro.X;
+                this.posYInicial = centro.Y;
+                this.posZInicial = centro.Z;
+            }
+
+            public override void EjecutarInterpolado(double tiempoActual)
+            {
+                if (tiempoActual < TiempoInicio) return;
+
+                double progreso = Math.Min(1.0, (tiempoActual - TiempoInicio) / Duracion);
+
+                double desplazamientoX = deltaX * progreso;
+                double desplazamientoY = deltaY * progreso;
+                double desplazamientoZ = deltaZ * progreso;
+
+                double dx = desplazamientoX - (posXAnterior - posXInicial);
+                double dy = desplazamientoY - (posYAnterior - posYInicial);
+                double dz = desplazamientoZ - (posZAnterior - posZInicial);
+
+                // Actualizar la posición anterior
+                posXAnterior = posXInicial + desplazamientoX;
+                posYAnterior = posYInicial + desplazamientoY;
+                posZAnterior = posZInicial + desplazamientoZ;
+
+                objeto.Trasladar(dx, dy, dz);
+            }
+        }
+
+        public class Rotacion : Transformacion
+        {
+            private Figura3D objeto;
+            private double anguloX, anguloY, anguloZ;
+            private Func<UncPunto> obtenerCentro;
+            private double anguloXInicial, anguloYInicial, anguloZInicial;
+            private double anguloXAnterior, anguloYAnterior, anguloZAnterior;
+
+            public Rotacion(Figura3D objeto, double anguloX, double anguloY, double anguloZ, Func<UncPunto> obtenerCentro, double duracion)
+            {
+                this.objeto = objeto;
+                this.anguloX = anguloX;
+                this.anguloY = anguloY;
+                this.anguloZ = anguloZ;
+                this.obtenerCentro = obtenerCentro;
+                this.Duracion = duracion;
+                anguloXInicial = 0;
+                anguloYInicial = 0;
+                anguloZInicial = 0;
+                anguloXAnterior = anguloXInicial;
+                anguloYAnterior = anguloYInicial;
+                anguloZAnterior = anguloZInicial;
+            }
+
+            public override void EjecutarInterpolado(double tiempoActual)
+            {
+                if (tiempoActual < TiempoInicio) return;
+
+                double progreso = Math.Min(1.0, (tiempoActual - TiempoInicio) / Duracion);
+
+                double rotacionX = anguloX * progreso;
+                double rotacionY = anguloY * progreso;
+                double rotacionZ = anguloZ * progreso;
+
+                double deltaX = rotacionX - anguloXAnterior;
+                double deltaY = rotacionY - anguloYAnterior;
+                double deltaZ = rotacionZ - anguloZAnterior;
+
+                anguloXAnterior = rotacionX;
+                anguloYAnterior = rotacionY;
+                anguloZAnterior = rotacionZ;
+
+                UncPunto centroActual = obtenerCentro(); // Obtener el centro dinámicamente
+
+                objeto.Rotar(deltaX, deltaY, deltaZ, centroActual);
+            }
+        }
+
+
+
+
+
+        public class Escalado : Transformacion
+        {
+            private Figura3D objeto;
+            private double factorInicial, factorFinal;
+            private UncPunto centro;
+            private double factorAnterior;
+            private double tiempoOffset;
+
+            public Escalado(Figura3D objeto, double factorFinal, UncPunto centro, double duracion, double tiempoOffset = 0.0)
+            {
+                this.objeto = objeto;
+                this.factorFinal = factorFinal;
+                this.centro = centro;
+                this.Duracion = duracion;
+                this.factorInicial = 1.0;
+                this.factorAnterior = factorInicial;
+                this.tiempoOffset = tiempoOffset;
+            }
+
+            public override void EjecutarInterpolado(double tiempoActual)
+            {
+                if (tiempoActual < TiempoInicio + tiempoOffset) return;
+
+                double tiempoRelativo = tiempoActual - TiempoInicio - tiempoOffset;
+                double progreso = Math.Min(1.0, tiempoRelativo / Duracion);
+
+                double factorActual = factorInicial + (factorFinal - factorInicial) * progreso;
+                double factorEscala = factorActual / factorAnterior;
+
+                objeto.Escalar(factorEscala, centro);
+
+                factorAnterior = factorActual;
+            }
+        }
+
+
     }
 
-    // Traslación
-    public class Traslacion : Transformacion
-    {
-        private Figura3D objeto;
-        private double tx, ty, tz;
 
-        public Traslacion(Figura3D objeto, double tx, double ty, double tz)
-        {
-            this.objeto = objeto;
-            this.tx = tx;
-            this.ty = ty;
-            this.tz = tz;
-        }
-
-        public override void Ejecutar()
-        {
-            objeto.Trasladar(tx, ty, tz);
-        }
-    }
-
-    // Rotación
-    public class Rotacion : Transformacion
-    {
-        private Figura3D objeto;
-        private double anguloX, anguloY, anguloZ;
-        private UncPunto centro;
-
-        public Rotacion(Figura3D objeto, double anguloX, double anguloY, double anguloZ, UncPunto centro)
-        {
-            this.objeto = objeto;
-            this.anguloX = anguloX;
-            this.anguloY = anguloY;
-            this.anguloZ = anguloZ;
-            this.centro = centro;
-        }
-
-        public override void Ejecutar()
-        {
-            objeto.Rotar(anguloX, anguloY, anguloZ, centro);
-        }
-    }
-
-    // Escalado
-    public class Escalado : Transformacion
-    {
-        private Figura3D objeto;
-        private double factor;
-        private UncPunto centro;
-
-        public Escalado(Figura3D objeto, double factor, UncPunto centro)
-        {
-            this.objeto = objeto;
-            this.factor = factor;
-            this.centro = centro;
-        }
-
-        public override void Ejecutar()
-        {
-            objeto.Escalar(factor, centro);
-        }
-    }
-
-}
